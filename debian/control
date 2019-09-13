@@ -1,0 +1,16 @@
+Source: wcm
+Section: x11
+Priority: optional
+Maintainer: Luis Pabon <luis.pabon@auronconsulting.co.uk>
+Build-Depends: debhelper (>= 11),
+                      libxml2-dev,
+                      wf-config,
+                      meson,
+                      pkg-config
+Standards-Version: 4.3.0
+Homepage: https://wayfire.org/
+
+Package: wcm
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Wayfire config manager.
