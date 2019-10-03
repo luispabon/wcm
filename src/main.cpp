@@ -51,10 +51,13 @@ activate(GtkApplication* app,
 {
         WCM *wcm = (WCM *) user_data;
         GtkWidget *window;
+        GdkPixbuf *icon;
 
         window = gtk_application_window_new(app);
+        icon = gdk_pixbuf_new_from_file(ICONDIR "/wcm.png", NULL);
         gtk_widget_set_size_request(window, 750, 500);
         gtk_window_set_default_size(GTK_WINDOW(window), 1000, 580);
+        gtk_window_set_icon (GTK_WINDOW(window), icon);
 
         wcm->window = window;
 
@@ -74,6 +77,9 @@ plugin_enabled(Plugin *p, std::string plugins)
                 return 1;
 
         pos = plugins.find(std::string(p->name));
+
+        if (!pos)
+                return 1;
 
         if (pos == std::string::npos)
                 return 0;
