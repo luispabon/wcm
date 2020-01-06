@@ -24,10 +24,20 @@
  */
 
 #include <vector>
+#include <iostream>
 #include <algorithm>
 #include <string.h>
 #include <gtk/gtk.h>
-#include <config.hpp>
+#include <wayfire/config/file.hpp>
+#include <gdk/gdkwayland.h>
+#include <wlr-input-inhibitor-unstable-v1-client-protocol.h>
+
+enum plugin_type
+{
+        PLUGIN_TYPE_NONE,
+        PLUGIN_TYPE_WAYFIRE,
+        PLUGIN_TYPE_WF_SHELL
+};
 
 enum option_type
 {
@@ -35,12 +45,27 @@ enum option_type
         OPTION_TYPE_BOOL,
         OPTION_TYPE_DOUBLE,
         OPTION_TYPE_STRING,
+        OPTION_TYPE_ACTIVATOR,
         OPTION_TYPE_BUTTON,
         OPTION_TYPE_KEY,
         OPTION_TYPE_COLOR,
         OPTION_TYPE_GROUP,
         OPTION_TYPE_SUBGROUP,
         OPTION_TYPE_DYNAMIC_LIST
+};
+
+enum mod_type
+{
+        MOD_TYPE_SHIFT   = 1 << 0,
+        MOD_TYPE_CONTROL = 1 << 1,
+        MOD_TYPE_ALT     = 1 << 2,
+        MOD_TYPE_SUPER   = 1 << 3
+};
+
+enum hint_type
+{
+        HINT_FILE      = 1,
+        HINT_DIRECTORY = 2
 };
 
 class LabeledInt
@@ -64,6 +89,7 @@ class var_data
         double min;
         double max;
         double precision;
+        hint_type hints;
 };
 
 union opt_data
@@ -81,14 +107,21 @@ class Option
         Plugin *plugin;
         char *name;
         char *disp_name;
+        char *binding;
         option_type type;
+        mod_type mod_mask;
         opt_data default_value;
         var_data data;
         Option *parent;
+        bool command;
+        bool hidden;
         GtkWidget *widget;
         GtkWidget *data_widget;
+        GtkWidget *label_widget;
+        GtkWidget *aux_window;
+        GtkWidget *hinted_entry;
+        GtkWidget *confirm_window;
         GtkWidget *command_combo;
-        GtkWidget *binding_entry;
         GtkWidget *command_expander;
         std::vector<Option *> options;
         std::vector<LabeledInt *> int_labels;
@@ -104,8 +137,10 @@ class Plugin
         char *name;
         char *disp_name;
         char *category;
+        plugin_type type;
         int x, y;
         int enabled;
+        GtkWidget *t1, *t2;
         std::vector<Option *> options;
 };
 
@@ -118,15 +153,22 @@ class WCM
         GtkWidget *left_panel_layout;
         GtkWidget *scrolled_plugin_layout;
         std::vector<Plugin *> plugins;
-        wayfire_config *wf_config;
-        const char *config_file;
+        wf::config::config_manager_t wf_config_mgr;
+        wf::config::config_manager_t wf_shell_config_mgr;
+        const char *wf_config_file;
+        const char *wf_shell_config_file;
+        zwlr_input_inhibitor_v1 *screen_lock;
+        zwlr_input_inhibit_manager_v1 *inhibitor_manager;
 };
 
 int
-load_config_file(WCM *wcm);
+load_config_files(WCM *wcm);
 
 int
 parse_xml_files(WCM *wcm, const char *dir_name);
 
 GtkWidget *
 create_main_layout(WCM *wcm);
+
+bool
+is_core_plugin(Plugin *plugin);

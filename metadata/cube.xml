@@ -53,9 +53,11 @@
 	</option>
 	<option name="skydome_texture" type="string">
 		<_short>Skydome Texture</_short>
+		<default></default>
 	</option>
 	<option name="cubemap_image" type="string">
 		<_short>Cubemap Image</_short>
+		<default></default>
 	</option>
 	<option name="light" type="bool">
 		<_short>Use Lighting</_short>
@@ -85,13 +87,13 @@
 		<_short>Activate</_short>
 		<default>&lt;alt&gt; &lt;ctrl&gt; BTN_LEFT</default>
 	</option>
-	<option name="rotate_left" type="button">
+	<option name="rotate_left" type="activator">
 		<_short>Rotate Left</_short>
-		<default>&lt;alt&gt; &lt;ctrl&gt; BTN_LEFT</default>
+		<default>&lt;alt&gt; &lt;ctrl&gt; KEY_LEFT</default>
 	</option>
-	<option name="rotate_right" type="button">
+	<option name="rotate_right" type="activator">
 		<_short>Rotate Right</_short>
-		<default>&lt;alt&gt; &lt;ctrl&gt; BTN_LEFT</default>
+		<default>&lt;alt&gt; &lt;ctrl&gt; KEY_RIGHT</default>
 	</option>
 	</group>
 	</plugin>

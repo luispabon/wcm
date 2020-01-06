@@ -30,19 +30,91 @@
 #include "wcm.h"
 
 int
-load_config_file(WCM *wcm)
+load_config_files(WCM *wcm)
 {
         wordexp_t exp;
+        char *wf_config_file_override = getenv("WAYFIRE_CONFIG_FILE");
+        char *wf_shell_config_file_override = getenv("WF_SHELL_CONFIG_FILE");
 
-        wordexp(CONFIG_FILE_PATH, &exp, 0);
+        if (wf_config_file_override) {
+                wcm->wf_config_file = wf_config_file_override;
+        } else {
+                wordexp(WAYFIRE_CONFIG_FILE, &exp, 0);
+                wcm->wf_config_file = strdup(exp.we_wordv[0]);
+                wordfree(&exp);
+        }
 
-        wcm->config_file = strdup(exp.we_wordv[0]);
+        wcm->wf_config_mgr = wf::config::build_configuration(METADATADIR, "", wcm->wf_config_file);
 
-        wordfree(&exp);
+        if (wf_shell_config_file_override) {
+                wcm->wf_shell_config_file = wf_shell_config_file_override;
+        } else {
+                wordexp(WF_SHELL_CONFIG_FILE, &exp, 0);
+                wcm->wf_shell_config_file = strdup(exp.we_wordv[0]);
+                wordfree(&exp);
+        }
 
-        wcm->wf_config = new wayfire_config(wcm->config_file);
+        wcm->wf_shell_config_mgr = wf::config::build_configuration(METADATADIR, "", wcm->wf_shell_config_file);
 
         return 0;
+}
+
+static void registry_add_object(void *data, struct wl_registry *registry,
+    uint32_t name, const char *interface, uint32_t version)
+{
+        WCM *wcm = (WCM *) data;
+
+        if (strcmp(interface, zwlr_input_inhibit_manager_v1_interface.name) == 0) {
+                wcm->inhibitor_manager = (zwlr_input_inhibit_manager_v1*) wl_registry_bind(
+                        registry, name, &zwlr_input_inhibit_manager_v1_interface, 1u);
+        }
+}
+
+static void registry_remove_object(void *data, struct wl_registry *registry, uint32_t name)
+{
+}
+
+static struct wl_registry_listener registry_listener =
+{
+        &registry_add_object,
+        &registry_remove_object
+};
+
+static bool
+init_input_inhibitor(WCM *wcm)
+{
+        struct wl_display *display = gdk_wayland_display_get_wl_display(gdk_display_get_default());
+        if (!display) {
+                std::cerr << "Failed to acquire wl_display for input inhibitor" << std::endl;
+                return false;
+        }
+        struct wl_registry *registry = wl_display_get_registry(display);
+        if (!registry) {
+                std::cerr << "Failed to acquire wl_registry for input inhibitor" << std::endl;
+                return false;
+        }
+
+        wl_registry_add_listener(registry, &registry_listener, wcm);
+        wl_display_dispatch(display);
+        wl_display_roundtrip(display);
+        if (!wcm->inhibitor_manager) {
+                std::cerr << "Compositor does not support " <<
+                    "wlr_input_inhibit_manager_v1" << std::endl;
+                return false;
+        }
+
+        return true;
+}
+
+bool
+is_core_plugin(Plugin *p)
+{
+        if (std::string(p->name) == "core" ||
+                std::string(p->name) == "input" ||
+                std::string(p->name) == "workarounds")
+                return true;
+
+        return false;
 }
 
 static void
@@ -65,6 +137,9 @@ activate(GtkApplication* app,
 
         gtk_window_set_title(GTK_WINDOW(window), "Wayfire Config Manager");
         gtk_widget_show_all(window);
+
+        if (!init_input_inhibitor(wcm))
+                std::cerr << "binding grabs will not work" << std::endl;
 }
 
 static int
@@ -73,7 +148,7 @@ plugin_enabled(Plugin *p, std::string plugins)
         char c1, c2;
         std::string::size_type pos;
 
-        if (!strcmp(p->name, "core") || !strcmp(p->name, "input"))
+        if (is_core_plugin(p))
                 return 1;
 
         pos = plugins.find(std::string(p->name));
@@ -96,15 +171,13 @@ init(WCM *wcm)
         Plugin *p;
         int i;
 
-        wayfire_config_section *section;
-        wf_option option;
-
-        section = wcm->wf_config->get_section("core");
-        option = section->get_option("plugins", "default");
+        auto section = wcm->wf_config_mgr.get_section("core");
+        auto option = section->get_option("plugins");
+        auto plugins = option->get_value_str();
 
         for (i = 0; i < int(wcm->plugins.size()); i++) {
                 p = wcm->plugins[i];
-                p->enabled = plugin_enabled(p, option->as_string());
+                p->enabled = plugin_enabled(p, plugins);
         }
 }
 
@@ -117,7 +190,7 @@ main(int argc, char **argv)
 
         wcm = new WCM();
 
-        if (load_config_file(wcm))
+        if (load_config_files(wcm))
                 return -1;
 
         if (parse_xml_files(wcm, METADATADIR))
@@ -130,7 +203,6 @@ main(int argc, char **argv)
         status = g_application_run(G_APPLICATION(app), argc, argv);
         g_object_unref(app);
 
-        delete wcm->wf_config;
         delete wcm;
 
         return status;
