@@ -58,6 +58,9 @@ create_option(xmlNode *cur_node, Plugin *p)
                 } else if (std::string((char *) prop) == "button") {
                         o->type = OPTION_TYPE_BUTTON;
                         o->default_value.s = strdup("");
+                } else if (std::string((char *) prop) == "gesture") {
+                        o->type = OPTION_TYPE_GESTURE;
+                        o->default_value.s = strdup("");
                 } else if (std::string((char *) prop) == "activator") {
                         o->type = OPTION_TYPE_ACTIVATOR;
                         o->default_value.s = strdup("");
@@ -88,6 +91,8 @@ create_option(xmlNode *cur_node, Plugin *p)
                         continue;
                 if (std::string((char *) node->name) == "_short") {
                         o->disp_name = strdup((char *) node->children->content);
+                } else if (std::string((char *) node->name) == "_long") {
+                        o->tooltip = strdup((char *) node->children->content);
                 } else if (std::string((char *) node->name) == "default") {
                         if (!node->children)
                                 continue;
@@ -105,6 +110,8 @@ create_option(xmlNode *cur_node, Plugin *p)
                                         if (o->default_value.i < 0 && o->default_value.i > 1)
                                                 printf("WARN: [%s] unknown bool option default\n", p->name);
                                         break;
+                                case OPTION_TYPE_ACTIVATOR:
+                                case OPTION_TYPE_GESTURE:
                                 case OPTION_TYPE_STRING:
                                 case OPTION_TYPE_BUTTON:
                                 case OPTION_TYPE_COLOR:
@@ -212,6 +219,8 @@ get_plugin_data(Plugin *p, Option *opt, Option *main_group, xmlDoc *doc, xmlNode
                         free(prop);
                 } else if (std::string((char *) cur_node->name) == "_short") {
                         p->disp_name = strdup((char *) cur_node->children->content);
+                } else if (std::string((char *) cur_node->name) == "_long") {
+                        p->tooltip = strdup((char *) cur_node->children->content);
                 } else if (std::string((char *) cur_node->name) == "category") {
                         if (!cur_node->children)
                                 continue;

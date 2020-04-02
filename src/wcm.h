@@ -45,6 +45,7 @@ enum option_type
         OPTION_TYPE_BOOL,
         OPTION_TYPE_DOUBLE,
         OPTION_TYPE_STRING,
+        OPTION_TYPE_GESTURE,
         OPTION_TYPE_ACTIVATOR,
         OPTION_TYPE_BUTTON,
         OPTION_TYPE_KEY,
@@ -107,6 +108,7 @@ class Option
         Plugin *plugin;
         char *name;
         char *disp_name;
+        char *tooltip;
         char *binding;
         option_type type;
         mod_type mod_mask;
@@ -136,6 +138,7 @@ class Plugin
         WCM *wcm;
         char *name;
         char *disp_name;
+        char *tooltip;
         char *category;
         plugin_type type;
         int x, y;
